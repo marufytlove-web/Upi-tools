@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -44,14 +44,14 @@ const topbarCopy: Record<AppLanguage, {
 }> = {
   zh: {
     chip: {
-      customer: "客户界面",
-      worker: "接单界面",
-      admin: "管理后台",
+      customer: "Client",
+      worker: "Worker",
+      admin: "Control Panel",
     },
-    scannerGroup: "加入 Scanner TG Group",
-    scannerGroupShort: "TG 群",
-    refresh: "刷新",
-    notification: "通知",
+    scannerGroup: "Join Scanner Group",
+    scannerGroupShort: "Group",
+    refresh: "Refresh",
+    notification: "Notifications",
   },
   en: {
     chip: {
@@ -67,14 +67,14 @@ const topbarCopy: Record<AppLanguage, {
 };
 
 const adminNavItems: AdminNavItem[] = [
-  { href: "/admin", label: "总览", description: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/admin/users", label: "用户管理", description: "Users", icon: UsersRoundIcon },
-  { href: "/admin/cdks", label: "充值 CDK", description: "Recharge keys", icon: KeyRoundIcon },
-  { href: "/admin/workers", label: "接单账号", description: "Workers", icon: UsersRoundIcon },
-  { href: "/admin/orders", label: "订单列表", description: "Orders", icon: ClipboardListIcon },
-  { href: "/admin/billing", label: "充值账单", description: "Billing", icon: ReceiptTextIcon },
-  { href: "/admin/proxies", label: "代理池", description: "Proxies", icon: Globe2Icon },
-  { href: "/admin/upi-extract", label: "提取记录", description: "UPI Extract", icon: DatabaseIcon },
+  { href: "/admin", label: "Dashboard", description: "Overview", icon: LayoutDashboardIcon },
+  { href: "/admin/users", label: "Users", description: "Accounts", icon: UsersRoundIcon },
+  { href: "/admin/cdks", label: "Recharge CDK", description: "Codes", icon: KeyRoundIcon },
+  { href: "/admin/workers", label: "Workers", description: "Operators", icon: UsersRoundIcon },
+  { href: "/admin/orders", label: "Orders", description: "Queue", icon: ClipboardListIcon },
+  { href: "/admin/billing", label: "Billing", description: "Payments", icon: ReceiptTextIcon },
+  { href: "/admin/proxies", label: "Proxies", description: "Exit nodes", icon: Globe2Icon },
+  { href: "/admin/upi-extract", label: "UPI Extract", description: "Jobs", icon: DatabaseIcon },
 ];
 
 const SCANNER_TG_GROUP_URL = process.env.NEXT_PUBLIC_SCANNER_TG_GROUP_URL || "https://t.me/your_scanner_group";
@@ -125,17 +125,17 @@ function AdminSidebar({ onRefresh }: { onRefresh?: () => void }) {
               <div className="truncate text-lg font-semibold leading-none tracking-tight">
                 <span className="text-brand">UPI</span> Admin
               </div>
-              <div className="mt-1 text-xs font-medium text-muted-foreground">管理后台</div>
+              <div className="mt-1 text-xs font-medium text-muted-foreground">Control Panel</div>
             </div>
           </Link>
           {onRefresh && (
-            <Button variant="outline" size="icon-sm" onClick={onRefresh} aria-label="刷新">
+            <Button variant="outline" size="icon-sm" onClick={onRefresh} aria-label="Refresh">
               <RefreshCwIcon />
             </Button>
           )}
         </div>
 
-        <nav className="hidden flex-1 flex-col gap-1.5 lg:flex" aria-label="管理后台导航">
+        <nav className="hidden flex-1 flex-col gap-1.5 lg:flex" aria-label="Admin navigation">
           {adminNavItems.map((item) => {
             const active = isAdminNavActive(pathname, item.href);
             const Icon = item.icon;
@@ -169,7 +169,7 @@ function AdminSidebar({ onRefresh }: { onRefresh?: () => void }) {
           })}
         </nav>
 
-        <nav className="-mx-1 flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="管理后台导航">
+        <nav className="-mx-1 flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Admin navigation">
           {adminNavItems.map((item) => {
             const active = isAdminNavActive(pathname, item.href);
             const Icon = item.icon;

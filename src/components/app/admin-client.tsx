@@ -58,6 +58,21 @@ type PublicSiteSettings = {
   customProxyEnabled: boolean;
 };
 
+type PlusPayKeyStatus = {
+  index: number;
+  key: string;
+  ok: boolean;
+  tgId?: number | null;
+  quota?: { used: number; limit: number; remaining: number } | null;
+  error?: string | null;
+};
+
+type PlusPayKeysPayload = {
+  count: number;
+  remainingTotal: number;
+  keys: PlusPayKeyStatus[];
+};
+
 export function AdminDashboardClient() {
   const [cdks, setCdks] = useState<PublicCdk[]>([]);
   const [workers, setWorkers] = useState<AdminWorker[]>([]);
@@ -69,18 +84,23 @@ export function AdminDashboardClient() {
     customProxyEnabled: false,
   });
   const [loading, setLoading] = useState(false);
+  const [plusPayKeys, setPlusPayKeys] = useState<PlusPayKeysPayload>({ count: 0, remainingTotal: 0, keys: [] });
+  const [plusPayKeysDraft, setPlusPayKeysDraft] = useState("");
+  const [plusPayKeysSaving, setPlusPayKeysSaving] = useState(false);
 
   const refresh = useCallback(async (silent = false) => {
     try {
       setLoading(true);
-      const [nextCdks, nextWorkers, nextSettings] = await Promise.all([
+      const [nextCdks, nextWorkers, nextSettings, nextPlusPayKeys] = await Promise.all([
         apiFetch<PublicCdk[]>("/api/admin/cdks"),
         apiFetch<AdminWorker[]>("/api/admin/workers"),
         apiFetch<PublicSiteSettings>("/api/admin/settings"),
+        apiFetch<PlusPayKeysPayload>("/api/admin/pluspay-keys"),
       ]);
       setCdks(nextCdks);
       setWorkers(nextWorkers);
       setSettings(nextSettings);
+      setPlusPayKeys(nextPlusPayKeys);
       if (!silent) toast.success("管理数据已刷新");
     } catch (error) {
       if (!silent) toast.error(error instanceof Error ? error.message : "刷新失败");
@@ -153,6 +173,23 @@ export function AdminDashboardClient() {
     }
   }, [settings]);
 
+  const savePlusPayKeys = useCallback(async () => {
+    try {
+      setPlusPayKeysSaving(true);
+      const nextPayload = await apiFetch<PlusPayKeysPayload>("/api/admin/pluspay-keys", {
+        method: "POST",
+        body: JSON.stringify({ apiKeys: plusPayKeysDraft }),
+      });
+      setPlusPayKeys(nextPayload);
+      setPlusPayKeysDraft("");
+      toast.success(`PlusPay API keys saved: ${nextPayload.count} key(s), ${nextPayload.remainingTotal} remaining quota`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "保存 PlusPay API key 失败");
+    } finally {
+      setPlusPayKeysSaving(false);
+    }
+  }, [plusPayKeysDraft]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void refresh(true), 0);
     return () => window.clearTimeout(timer);
@@ -211,6 +248,73 @@ export function AdminDashboardClient() {
               </div>
             </div>
             <Switch checked={settings.customProxyEnabled} onCheckedChange={setCustomProxyEnabled} disabled={loading} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 rounded-3xl bg-background shadow-sm">
+        <CardHeader>
+          <CardTitle>PlusPay API Key Pool</CardTitle>
+          <CardDescription>
+            Manage the API keys used for QR generation. Full keys are never shown after saving; paste one key per line or comma-separated to replace the stored pool.
+          </CardDescription>
+          <CardAction><KeyRoundIcon className="size-5 text-muted-foreground" /></CardAction>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+          <div className="rounded-3xl border border-border bg-muted/30 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-semibold">Configured Keys</div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {plusPayKeys.count} key(s), total remaining quota {plusPayKeys.remainingTotal}. The extractor tries keys in order and moves to the next key if quota is empty or rate-limited.
+                </p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => refresh()} disabled={loading}>
+                <RefreshCwIcon data-icon="inline-start" />Check
+              </Button>
+            </div>
+            <div className="mt-4 space-y-2">
+              {plusPayKeys.keys.map((item) => (
+                <div key={`${item.index}-${item.key}`} className="flex flex-col gap-2 rounded-2xl border border-border bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="font-mono text-sm">{item.index}. {item.key}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      TG {item.tgId || "-"} · used {item.quota?.used ?? "-"} / limit {item.quota?.limit ?? "-"} · remaining {item.quota?.remaining ?? "-"}
+                    </div>
+                    {item.error && <div className="mt-1 text-xs text-destructive">{item.error}</div>}
+                  </div>
+                  <Badge variant={item.ok && Number(item.quota?.remaining || 0) > 0 ? "default" : "secondary"}>
+                    {item.ok ? `${item.quota?.remaining ?? 0} left` : "not ready"}
+                  </Badge>
+                </div>
+              ))}
+              {plusPayKeys.keys.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  No stored API keys yet. Paste keys on the right and save.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-border bg-muted/30 p-4">
+            <div className="font-semibold">Replace Key Pool</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Paste all active PlusPay keys here. This replaces the stored database key pool; environment keys still remain as fallback.
+            </p>
+            <Textarea
+              value={plusPayKeysDraft}
+              onChange={(event) => setPlusPayKeysDraft(event.target.value)}
+              placeholder={"ppk_live_key_1\nppk_live_key_2"}
+              className="mt-3 h-36 min-h-36 resize-y font-mono text-xs"
+              spellCheck={false}
+              disabled={plusPayKeysSaving}
+            />
+            <div className="mt-3 flex justify-end">
+              <Button type="button" onClick={() => void savePlusPayKeys()} disabled={plusPayKeysSaving || !plusPayKeysDraft.trim()}>
+                {plusPayKeysSaving ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <SaveIcon data-icon="inline-start" />}
+                {plusPayKeysSaving ? "Saving..." : "Save API Keys"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

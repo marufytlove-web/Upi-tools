@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AutoEnglishPatch } from "@/components/app/auto-english-patch";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -18,7 +19,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "UPI Hub",
-  description: "二维码订单处理系统。",
+  description: "äºŒç»´ç è®¢å•å¤„ç†ç³»ç»Ÿã€‚",
 };
 
 export default function RootLayout({
@@ -27,9 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <TooltipProvider>{children}</TooltipProvider>
+        <AutoEnglishPatch />
         <Toaster position="top-center" richColors />
       </body>
     </html>

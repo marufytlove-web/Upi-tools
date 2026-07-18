@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       }
     }
     const autoPublishScanOrder = extractMethod === "upi" && Boolean(body.autoPublishScanOrder);
-    const untilSuccess = Boolean(publicUser?.isPremium && body.untilSuccess);
+    const untilSuccess = process.env.UPI_EXTRACT_FORCE_UNTIL_SUCCESS === "1" || Boolean(publicUser?.isPremium && body.untilSuccess);
     if (publicUser) {
       const activeCount = await countPublicUpiExtractUserActiveJobs(publicUser.telegramUserId);
       const maxActive = publicUser.isPremium ? PREMIUM_USER_MAX_ACTIVE_EXTRACT_JOBS : NORMAL_USER_MAX_ACTIVE_EXTRACT_JOBS;

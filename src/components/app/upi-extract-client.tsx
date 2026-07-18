@@ -1235,7 +1235,7 @@ const UI_TEXT: Record<Lang, typeof EN_TEXT> = {
 };
 
 export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: boolean; mockSeedAt?: number }) {
-  const [lang, setLang] = useState<Lang>(() => getInitialLanguage());
+  const [lang, setLang] = useState<Lang>("zh");
   const [initialGuardId] = useState(() => getInitialGuardIdFromUrl());
   const [mode, setMode] = useState<ExtractMode>("token");
   const [extractMethod, setExtractMethod] = useState<PaymentExtractMethod>(DEFAULT_PAYMENT_EXTRACT_METHOD);
@@ -1464,6 +1464,14 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
       window.removeEventListener("resize", updateScrollbar);
       observer?.disconnect();
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setLang(getInitialLanguage());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

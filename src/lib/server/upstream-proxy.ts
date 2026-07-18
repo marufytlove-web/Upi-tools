@@ -150,10 +150,16 @@ export function normalizeCustomUpstreamProxyUrl(rawUrl?: string | null) {
 }
 
 function getProxySourcePairs(pool: UpstreamProxyPool): Array<[UpstreamProxyEntry["source"], string]> {
+  const explicitPublicProxyConfigured = Boolean(
+    (process.env.UPSTREAM_PROXY_LIST || "").trim() ||
+    (process.env.UPI_PROXY_LIST || "").trim() ||
+    (process.env.UPSTREAM_PROXY || "").trim()
+  );
+  const fallbackProxy = explicitPublicProxyConfigured ? "" : process.env.ALL_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || "";
   const publicPairs: Array<[UpstreamProxyEntry["source"], string]> = [
     ["UPSTREAM_PROXY_LIST", process.env.UPSTREAM_PROXY_LIST || ""],
     ["UPI_PROXY_LIST", process.env.UPI_PROXY_LIST || ""],
-    ["UPSTREAM_PROXY", process.env.UPSTREAM_PROXY || ""],
+    ["UPSTREAM_PROXY", process.env.UPSTREAM_PROXY || fallbackProxy],
   ];
 
   if (pool === "public") return publicPairs;

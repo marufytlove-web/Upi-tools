@@ -36,6 +36,14 @@ export async function createAdminToken(telegramUserId: string) {
     .sign(getJwtSecret());
 }
 
+export async function createPasswordAdminToken() {
+  return new SignJWT({ admin: true, passwordAdmin: true, telegramUserId: "password-admin" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
+    .sign(getJwtSecret());
+}
+
 export async function createPublicUserToken(input: { telegramUserId: string; telegramUsername?: string | null }) {
   return new SignJWT({
     publicUser: true,
@@ -61,6 +69,17 @@ export async function setWorkerCookie(response: NextResponse, workerId: string) 
 
 export async function setAdminCookie(response: NextResponse, telegramUserId: string) {
   const token = await createAdminToken(telegramUserId);
+  response.cookies.set(ADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: SESSION_TTL_SECONDS,
+    path: "/",
+  });
+}
+
+export async function setPasswordAdminCookie(response: NextResponse) {
+  const token = await createPasswordAdminToken();
   response.cookies.set(ADMIN_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -157,6 +176,9 @@ export async function getAdminSession() {
   try {
     const verified = await jwtVerify(token, getJwtSecret());
     if (verified.payload.admin !== true) return null;
+    if (verified.payload.passwordAdmin === true) {
+      return { telegramUserId: "password-admin", username: "admin" };
+    }
     const telegramUserId = verified.payload.telegramUserId;
     if (typeof telegramUserId !== "string") return null;
 

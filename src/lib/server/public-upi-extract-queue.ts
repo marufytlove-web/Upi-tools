@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "crypto";
 import { checkChatGptSubscription, extractIdealPaymentFromCredential, extractUpiQrFromCredential, NoFreeTrialError, PaymentMethodUnavailableError, type UpiExtractionDebugEvent, type UpiExtractionProgress } from "@/lib/server/chatgpt-upi";
 import { prisma } from "@/lib/server/prisma";
 import { decryptSessionCredential, encryptSessionCredential, hashSessionCredential } from "@/lib/server/credential-vault";
+import { extractUpiQrWithLinhtdApi, isLinhtdUpiApiEnabled } from "@/lib/server/linhtd-upi-api";
+import { extractUpiQrWithPlusPayApi, isPlusPayApiEnabled } from "@/lib/server/pluspay-upi-api";
 import { createPublicScanOrderFromTicket, createPublicScanOrderTicket } from "@/lib/server/public-scan-orders";
 import { notifyPublicUpiExtractResult } from "@/lib/server/public-user-settings";
 import { PUBLIC_SCAN_ORDER_PRICE, freezePublicScanOrderFunds, refundPublicScanOrderFunds } from "@/lib/server/public-user-wallet";
@@ -88,6 +90,10 @@ function shouldRunExtractorInThisProcess() {
 
 function shouldUseInMemoryRuntimeStateForReads() {
   return shouldRunExtractorInThisProcess();
+}
+
+function shouldForcePublicUpiExtractUntilSuccess() {
+  return process.env.UPI_EXTRACT_FORCE_UNTIL_SUCCESS === "1";
 }
 
 export type PublicUpiExtractResult = {
@@ -647,6 +653,10 @@ export async function setPublicUpiExtractConcurrency(channel: PublicUpiExtractCh
 }
 
 export async function checkPublicUpiExtractRateLimit(request: Request, channel: PublicUpiExtractChannel = "public") {
+  if (process.env.DISABLE_UPI_EXTRACT_RATE_LIMIT === "1" || process.env.NODE_ENV !== "production") {
+    return { allowed: true as const };
+  }
+
   const identityHash = hashIdentity(`${channel}:${getClientIdentity(request)}`);
   const now = Date.now();
   const lastAt = store.rateLimitMemory.get(identityHash) || 0;
@@ -761,7 +771,7 @@ export async function createPublicUpiExtractJob(payload: QueuedExtractionPayload
     publicUserTelegramName: payload.publicUserTelegramName || null,
     accountEmail: payload.accountEmail || null,
     accountPhone: payload.accountPhone || null,
-    untilSuccess: channel === "premium" && Boolean(payload.untilSuccess),
+    untilSuccess: shouldForcePublicUpiExtractUntilSuccess() || (channel === "premium" && Boolean(payload.untilSuccess)),
     autoPublishScanOrder: Boolean(payload.autoPublishScanOrder),
     approvalParallelism,
     retryCount: 0,
@@ -4048,7 +4058,7 @@ async function runExtractionJob(jobId: string, payload: QueuedExtractionPayload,
   const channel = normalizePublicUpiExtractChannel(payload.channel);
   const extractMethod = normalizePublicUpiExtractMethod(payload.extractMethod);
   const autoPublishForThisJob = extractMethod === "upi" && Boolean(payload.autoPublishScanOrder);
-  const untilSuccess = channel === "premium" && Boolean(payload.untilSuccess);
+  const untilSuccess = shouldForcePublicUpiExtractUntilSuccess() || (channel === "premium" && Boolean(payload.untilSuccess));
   const approvalParallelism = normalizeApprovalParallelismInput(payload.approvalParallelism);
   const extractionLabel = extractMethod === "ideal" ? "IDEAL" : "UPI";
   let attempt = 0;
@@ -4125,7 +4135,31 @@ async function runExtractionJob(jobId: string, payload: QueuedExtractionPayload,
         }
       );
       const shouldCancelExtraction = () => isRunCancelled(jobId);
-      const extracted = extractMethod === "ideal"
+      const useExternalPlusPayApi = extractMethod === "upi" && await isPlusPayApiEnabled();
+      const useExternalLinhtdApi = extractMethod === "upi" && !useExternalPlusPayApi && isLinhtdUpiApiEnabled();
+      if (useExternalPlusPayApi || useExternalLinhtdApi) {
+        appendPublicUpiExtractDebugLog(jobId, "info", useExternalPlusPayApi ? "External PlusPay API is enabled for this attempt" : "External Linhtd UPI API is enabled for this attempt", {
+          stage: "queued",
+          percent: 5,
+          attempt,
+        });
+      }
+      const extracted = useExternalPlusPayApi
+        ? await extractUpiQrWithPlusPayApi({
+          credential,
+          shouldCancel: shouldCancelExtraction,
+          onProgress: onExtractionProgress,
+          onDebug: onExtractionDebug,
+        })
+        : useExternalLinhtdApi
+        ? await extractUpiQrWithLinhtdApi({
+          credential,
+          email: payload.accountEmail || null,
+          shouldCancel: shouldCancelExtraction,
+          onProgress: onExtractionProgress,
+          onDebug: onExtractionDebug,
+        })
+        : extractMethod === "ideal"
         ? await extractIdealPaymentFromCredential(credential, {
           proxyPool: channel,
           approvalParallelism,
