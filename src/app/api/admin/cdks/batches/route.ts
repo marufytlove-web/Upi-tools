@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+﻿import { Prisma } from "@prisma/client";
 import { requireAdminSession } from "@/lib/server/auth";
 import { parseRechargeCdkAmount } from "@/lib/cdk-recharge";
 import { generateUniqueCdkCodes } from "@/lib/server/cdk-generator";
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     ]);
     return ok(paginatedPayload(batches.map(serializeCdkBatch), { page, pageSize, total, search }));
   } catch (error) {
-    if (error instanceof Response) return fail("未登录管理员", 401);
+    if (error instanceof Response) return fail("æœªç™»å½•ç®¡ç†å‘˜", 401);
     return handleRouteError(error);
   }
 }
@@ -59,9 +59,9 @@ export async function POST(request: Request) {
     const name = String(body.name || "").trim().slice(0, 80) || null;
     const remark = String(body.remark || "").trim().slice(0, 200) || null;
 
-    if (!Number.isInteger(count) || count <= 0) return fail("生成数量必须是正整数");
-    if (count > MAX_BATCH_SIZE) return fail(`单批最多生成 ${MAX_BATCH_SIZE} 个 CDK`);
-    if (!amount) return fail("请选择有效充值金额：1.8U、5U 或 10U");
+    if (!Number.isInteger(count) || count <= 0) return fail("ç”Ÿæˆæ•°é‡å¿…é¡»æ˜¯æ­£æ•´æ•°");
+    if (count > MAX_BATCH_SIZE) return fail(`å•æ‰¹æœ€å¤šç”Ÿæˆ ${MAX_BATCH_SIZE} ä¸ª CDK`);
+    if (!amount) return fail("Please enter a valid CDK amount between 0.01 and 10000 USDT.");
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const codes = await generateUniqueCdkCodes(count);
@@ -113,9 +113,9 @@ export async function POST(request: Request) {
       }
     }
 
-    return fail("生成 CDK 失败，请重试");
+    return fail("ç”Ÿæˆ CDK å¤±è´¥ï¼Œè¯·é‡è¯•");
   } catch (error) {
-    if (error instanceof Response) return fail("未登录管理员", 401);
+    if (error instanceof Response) return fail("æœªç™»å½•ç®¡ç†å‘˜", 401);
     return handleRouteError(error);
   }
 }

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+﻿import { Prisma } from "@prisma/client";
 import { requireAdminSession } from "@/lib/server/auth";
 import { normalizeCdkCode } from "@/lib/cdk-code";
 import { parseRechargeCdkAmount } from "@/lib/cdk-recharge";
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
     return ok(paginatedPayload(cdks.map(serializeCdk), { page, pageSize, total, search }));
   } catch (error) {
-    if (error instanceof Response) return fail("未登录管理员", 401);
+    if (error instanceof Response) return fail("æœªç™»å½•ç®¡ç†å‘˜", 401);
     return handleRouteError(error);
   }
 }
@@ -49,8 +49,8 @@ export async function POST(request: Request) {
     const amount = parseRechargeCdkAmount(body.amount);
     const remark = String(body.remark || "").trim() || null;
 
-    if (!code) return fail("请输入 CDK");
-    if (!amount) return fail("请选择有效充值金额：1.8U、5U 或 10U");
+    if (!code) return fail("è¯·è¾“å…¥ CDK");
+    if (!amount) return fail("Please enter a valid CDK amount between 0.01 and 10000 USDT.");
 
     const cdk = await prisma.cdk.create({
       data: {
@@ -63,9 +63,26 @@ export async function POST(request: Request) {
 
     return ok(serializeCdk(cdk));
   } catch (error) {
-    if (error instanceof Response) return fail("未登录管理员", 401);
-    const message = error instanceof Error ? error.message : "创建 CDK 失败";
-    if (message.includes("Unique") || message.includes("P2002")) return fail("CDK 已存在");
+    if (error instanceof Response) return fail("æœªç™»å½•ç®¡ç†å‘˜", 401);
+    const message = error instanceof Error ? error.message : "åˆ›å»º CDK å¤±è´¥";
+    if (message.includes("Unique") || message.includes("P2002")) return fail("CDK å·²å­˜åœ¨");
+    return handleRouteError(error);
+  }
+}
+
+export async function DELETE() {
+  try {
+    await requireAdminSession();
+    const result = await prisma.cdk.deleteMany({
+      where: {
+        usedCount: 0,
+        redeemedAt: null,
+        orders: { none: {} },
+      },
+    });
+    return ok({ deletedCount: result.count });
+  } catch (error) {
+    if (error instanceof Response) return fail("Unauthorized", 401);
     return handleRouteError(error);
   }
 }

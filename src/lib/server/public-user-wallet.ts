@@ -87,7 +87,7 @@ export type PublicUserCdkRedeemResult = {
   wallet: PublicUserWalletSummary;
 };
 
-type PublicUserIdentity = {
+export type PublicUserIdentity = {
   telegramUserId: string;
   telegramUsername?: string | null;
 };

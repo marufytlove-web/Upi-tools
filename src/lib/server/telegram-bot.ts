@@ -10,10 +10,14 @@ import {
   type TelegramLoginActor,
 } from "@/lib/server/telegram-login";
 import {
+  createPublicUpiExtractJob,
+  getPublicUpiExtractJob,
   getPublicUpiExtractUserHistoryPage,
   type PublicUpiExtractActivity,
   type PublicUpiExtractUserHistoryFilter,
 } from "@/lib/server/public-upi-extract-queue";
+import { EmailBoundError, hasRecognizedSessionCredential, validateCredentialForUpiExtraction } from "@/lib/server/chatgpt-upi";
+import { getPublicUserWalletSummary, redeemRechargeCdk, type PublicUserIdentity } from "@/lib/server/public-user-wallet";
 
 type TelegramUser = {
   id: number;
@@ -26,6 +30,13 @@ type TelegramMessage = {
   chat: { id: number };
   from?: TelegramUser;
   text?: string;
+  caption?: string;
+  document?: {
+    file_id: string;
+    file_name?: string;
+    mime_type?: string;
+    file_size?: number;
+  };
 };
 
 export type TelegramUpdate = {
@@ -40,7 +51,9 @@ export type TelegramUpdate = {
 };
 
 export const TELEGRAM_BOT_COMMANDS = [
-  { command: "start", description: "Show login instructions" },
+  { command: "start", description: "Start the UPI QR bot" },
+  { command: "balance", description: "Check wallet balance" },
+  { command: "redeem", description: "Redeem a recharge CDK" },
   { command: "login", description: "Confirm a web login code" },
   { command: "worker", description: "Confirm a worker login code" },
   { command: "tasks", description: "View extraction tasks" },
@@ -142,19 +155,19 @@ function parseRegCommand(text: string) {
 
 function getHelpText(isAdmin = false) {
   return [
-    "UPI Scanner Login Bot",
+    "Tool Mart UPI Bot",
     "",
-    "1. Open /, /worker, or /admin in the web app.",
-    "2. Copy the 8-character login code shown on the page.",
-    "3. Send it here, for example: /login A7K9Q2P4",
-    "You can also use the page button to open this bot with the code prefilled.",
+    "Send one ChatGPT session token/session.json file per message. I will generate a UPI QR when a valid checkout is available.",
     "",
-    "Each Telegram account can try at most 3 login codes every 5 minutes.",
-    "/admin can only be confirmed by the configured admin Telegram account.",
-    "/worker can only be confirmed by registered worker Telegram accounts.",
+    "Wallet:",
+    "/balance  Check your balance.",
+    "/redeem CODE  Redeem a recharge CDK.",
     "",
     "Useful commands:",
     "/tasks  View your extraction tasks.",
+    "/help  Show this help.",
+    "",
+    "Admin/worker web login still works with /login CODE, /worker CODE, and /admin CODE.",
     ...(isAdmin
       ? [
           "",
@@ -164,6 +177,160 @@ function getHelpText(isAdmin = false) {
         ]
       : []),
   ].join("\n");
+}
+
+function publicUserFromTelegram(from: TelegramUser): PublicUserIdentity {
+  return {
+    telegramUserId: String(from.id),
+    telegramUsername: from.username || null,
+  };
+}
+
+function formatMoney(value: number) {
+  return Number(value || 0).toFixed(2);
+}
+
+function publicErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "Unknown error");
+  if (/cdk/i.test(message)) {
+    const normalized = message.toLowerCase();
+    if (normalized.includes("not found") || normalized.includes("???")) return "CDK not found.";
+    if (normalized.includes("expired") || normalized.includes("??")) return "CDK has expired.";
+    if (normalized.includes("redeemed") || normalized.includes("??")) return "CDK has already been redeemed.";
+    if (normalized.includes("disabled") || normalized.includes("??")) return "CDK is disabled or unavailable.";
+  }
+  return message;
+}
+async function sendPublicBalance(chatId: number | string, user: PublicUserIdentity) {
+  const wallet = await getPublicUserWalletSummary(user);
+  await sendTelegramMessage(chatId, [
+    "Wallet balance",
+    "",
+    `Available: ${formatMoney(wallet.availableBalance)} USDT`,
+    `Frozen: ${formatMoney(wallet.frozenBalance)} USDT`,
+    `Total deposited: ${formatMoney(wallet.totalDeposited)} USDT`,
+    `Total spent: ${formatMoney(wallet.totalSpent)} USDT`,
+  ].join("\n"));
+}
+
+async function handleRedeemCommand(chatId: number | string, user: PublicUserIdentity, text: string) {
+  const match = text.match(/^\/redeem(?:@\w+)?\s+(.+)$/i);
+  if (!match) {
+    await sendTelegramMessage(chatId, "Usage: /redeem YOUR_CDK_CODE");
+    return;
+  }
+  try {
+    const result = await redeemRechargeCdk(user, { code: match[1].trim() });
+    await sendTelegramMessage(chatId, [
+      "CDK redeemed successfully.",
+      "",
+      `Code: ${result.code}`,
+      `Added: ${formatMoney(result.amount)} USDT`,
+      `Available balance: ${formatMoney(result.wallet.availableBalance)} USDT`,
+    ].join("\n"));
+  } catch (error) {
+    await sendTelegramMessage(chatId, `Redeem failed: ${publicErrorMessage(error)}`);
+  }
+}
+
+type TelegramFileResult = {
+  file_id: string;
+  file_path?: string;
+  file_size?: number;
+};
+
+async function getTelegramDocumentText(document: NonNullable<TelegramMessage["document"]>) {
+  if (document.file_size && document.file_size > 2_000_000) {
+    throw new Error("File is too large. Please send a session.json/text file under 2 MB.");
+  }
+  const file = await callTelegramMethod<TelegramFileResult>("getFile", { file_id: document.file_id });
+  if (!file.file_path) throw new Error("Telegram did not return a downloadable file path.");
+  configureTelegramProxy();
+  const token = getTelegramBotToken();
+  const response = await fetch(`https://api.telegram.org/file/bot${token}/${file.file_path}`, {
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Failed to download Telegram file: HTTP ${response.status}`);
+  const text = await response.text();
+  if (text.length > 2_000_000) throw new Error("File is too large. Please send a smaller session file.");
+  return text.trim();
+}
+
+function qrDataUrlToBuffer(dataUrl: string) {
+  const match = dataUrl.match(/^data:image\/png;base64,([\s\S]+)$/i);
+  if (!match) return null;
+  return Buffer.from(match[1], "base64");
+}
+
+async function waitForPublicExtractResult(jobId: string) {
+  const startedAt = Date.now();
+  const timeoutMs = Math.max(20_000, Math.min(240_000, Number(process.env.TELEGRAM_UPI_WAIT_MS || 180_000)));
+  let latest = await getPublicUpiExtractJob(jobId);
+  while (Date.now() - startedAt < timeoutMs) {
+    latest = await getPublicUpiExtractJob(jobId);
+    if (latest?.status === "completed" || latest?.status === "failed") return latest;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  return latest;
+}
+
+async function handlePublicSessionCredential(chatId: number | string, user: PublicUserIdentity, credential: string) {
+  const trimmed = credential.trim();
+  if (!hasRecognizedSessionCredential(trimmed)) {
+    await sendTelegramMessage(chatId, "No valid session token/session JSON was recognized. Send one account per message.");
+    return;
+  }
+
+  try {
+    await sendTelegramMessage(chatId, "Session received. Generating UPI QR now...");
+    const credentialInfo = await validateCredentialForUpiExtraction(trimmed);
+    const job = await createPublicUpiExtractJob({
+      credential: trimmed,
+      issueGuardCreateToken: false,
+      source: "direct",
+      channel: "public",
+      extractMethod: "upi",
+      publicUserTelegramId: user.telegramUserId,
+      publicUserTelegramName: user.telegramUsername ? `@${user.telegramUsername}` : null,
+      accountEmail: credentialInfo.accountEmail || null,
+      accountPhone: credentialInfo.accountPhone || null,
+      autoPublishScanOrder: false,
+      untilSuccess: false,
+      approvalParallelism: 1,
+      checkoutProxyUrl: "",
+      providerProxyUrl: "",
+    });
+
+    const latest = await waitForPublicExtractResult(job.jobId);
+    if (!latest) {
+      await sendTelegramMessage(chatId, "Task disappeared before it finished. Please submit again.");
+      return;
+    }
+    if (latest.status !== "completed" || !latest.result) {
+      await sendTelegramMessage(chatId, `Extraction failed: ${latest.error || "UPI QR generation failed. Please try another account."}`);
+      return;
+    }
+
+    const result = latest.result;
+    const caption = [
+      "UPI QR ready.",
+      credentialInfo.accountEmail ? `Account: ${credentialInfo.accountEmail}` : null,
+      `Expires: ${new Date(result.expiresAt).toLocaleString("en-US")}`,
+      result.paymentUrl ? `Payment link: ${result.paymentUrl}` : null,
+    ].filter(Boolean).join("\n");
+    const qrBuffer = qrDataUrlToBuffer(result.qrImageUrl);
+    if (qrBuffer) {
+      await sendTelegramPhoto(chatId, qrBuffer, caption);
+    } else {
+      await sendTelegramMessage(chatId, caption);
+    }
+  } catch (error) {
+    if (error instanceof EmailBoundError) {
+      await sendTelegramMessage(chatId, `Extraction failed for ${error.email}: ${error.message}`);
+      return;
+    }
+    await sendTelegramMessage(chatId, `Extraction failed: ${publicErrorMessage(error)}`);
+  }
 }
 
 async function registerWorkerByTelegram(actor: TelegramLoginActor, telegramUsername: string, unitPrice: string) {
@@ -427,15 +594,39 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   }
 
   const message = update.message;
-  if (!message?.text || !message.from) return { handled: false };
+  if (!message?.from) return { handled: false };
 
-  const text = message.text.trim();
+  const rawText = message.text || message.caption || "";
+  const text = rawText.trim();
   const chatId = message.chat.id;
   const actor: TelegramLoginActor = {
     id: String(message.from.id),
     username: message.from.username,
     firstName: message.from.first_name,
   };
+  const publicUser = publicUserFromTelegram(message.from);
+
+  if (message.document) {
+    try {
+      const documentText = await getTelegramDocumentText(message.document);
+      await handlePublicSessionCredential(chatId, publicUser, documentText);
+    } catch (error) {
+      await sendTelegramMessage(chatId, `File failed: ${publicErrorMessage(error)}`);
+    }
+    return { handled: true };
+  }
+
+  if (!text) return { handled: false };
+
+  if (/^\/balance(?:@\w+)?$/i.test(text)) {
+    await sendPublicBalance(chatId, publicUser);
+    return { handled: true };
+  }
+
+  if (/^\/redeem(?:@\w+)?(?:\s|$)/i.test(text)) {
+    await handleRedeemCommand(chatId, publicUser, text);
+    return { handled: true };
+  }
 
   const regCommand = parseRegCommand(text);
   if (regCommand) {
@@ -463,7 +654,12 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await sendTelegramMessage(chatId, getHelpText(isAllowedAdmin(actor)));
       return { handled: true };
     }
-    return { handled: false };
+    if (hasRecognizedSessionCredential(text)) {
+      await handlePublicSessionCredential(chatId, publicUser, text);
+      return { handled: true };
+    }
+    await sendTelegramMessage(chatId, "Send a ChatGPT session token/session.json file, or use /help.");
+    return { handled: true };
   }
 
   const result = await approveTelegramLoginCode(code, actor);

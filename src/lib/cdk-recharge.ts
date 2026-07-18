@@ -1,12 +1,13 @@
-export const RECHARGE_CDK_AMOUNTS = [1.8, 5, 10] as const;
+﻿export const RECHARGE_CDK_AMOUNTS = [1.8, 5, 10] as const;
 
-export type RechargeCdkAmount = typeof RECHARGE_CDK_AMOUNTS[number];
+export type RechargeCdkAmount = number;
 
 export function parseRechargeCdkAmount(value: unknown): RechargeCdkAmount | null {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return null;
-  const cents = Math.round(amount * 100);
-  return RECHARGE_CDK_AMOUNTS.find((item) => Math.round(item * 100) === cents) ?? null;
+  if (amount <= 0) return null;
+  if (amount > 10000) return null;
+  return Math.round(amount * 100) / 100;
 }
 
 export function formatRechargeCdkAmount(value: number) {
