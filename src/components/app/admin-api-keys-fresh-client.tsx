@@ -152,6 +152,7 @@ export function AdminApiKeysFreshClient() {
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => saveKeys()} disabled={saving}>{saving ? <Loader2Icon className="animate-spin" /> : <CheckCircle2Icon />}Save Pool</Button>
               <Button variant="outline" onClick={refresh} disabled={loading}><RefreshCwIcon className={loading ? "animate-spin" : ""} />Refresh Status</Button>
+              <Button variant="destructive" onClick={() => saveKeys([])} disabled={saving || cleanKeys().length === 0}><Trash2Icon />Delete All</Button>
             </div>
           </CardContent>
         </Card>
@@ -159,24 +160,44 @@ export function AdminApiKeysFreshClient() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Key Status</CardTitle>
-          <CardDescription>Masked keys are shown below. Full keys stay only in the editor.</CardDescription>
+          <CardTitle>API Credits by Key</CardTitle>
+          <CardDescription>See exactly which API key has how many credits/quota left.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {keyRows.length ? keyRows.map((key, index) => (
-            <div key={`${key.maskedKey || index}`} className="flex flex-col gap-3 rounded-lg border bg-muted/25 px-3 py-3 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <div className="truncate font-mono text-xs">{key.maskedKey || `Key ${index + 1}`}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Remaining {key.remaining ?? "-"} · Used {key.used ?? "-"} · Limit {key.limit ?? "-"} {key.message ? `· ${key.message}` : ""}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {keyBadge(key)}
-                <Button variant="outline" size="sm" onClick={() => removeKey(index)} disabled={saving}><Trash2Icon />Remove</Button>
-              </div>
+        <CardContent>
+          {keyRows.length ? (
+            <div className="overflow-hidden rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">API Key</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium">Remaining</th>
+                    <th className="px-3 py-2 font-medium">Used</th>
+                    <th className="px-3 py-2 font-medium">Limit</th>
+                    <th className="px-3 py-2 font-medium">Balance</th>
+                    <th className="px-3 py-2 font-medium">Message</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {keyRows.map((key, index) => (
+                    <tr key={`${key.maskedKey || index}`} className="border-t">
+                      <td className="px-3 py-3 font-mono text-xs">{key.maskedKey || `Key ${index + 1}`}</td>
+                      <td className="px-3 py-3">{keyBadge(key)}</td>
+                      <td className="px-3 py-3 text-lg font-semibold">{key.remaining ?? "-"}</td>
+                      <td className="px-3 py-3">{key.used ?? "-"}</td>
+                      <td className="px-3 py-3">{key.limit ?? "-"}</td>
+                      <td className="px-3 py-3">{key.balance ?? "-"}</td>
+                      <td className="max-w-72 truncate px-3 py-3 text-xs text-muted-foreground" title={key.message || ""}>{key.message || "-"}</td>
+                      <td className="px-3 py-3">
+                        <Button variant="outline" size="sm" onClick={() => removeKey(index)} disabled={saving}><Trash2Icon />Delete</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )) : (
+          ) : (
             <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No API keys saved yet.</div>
           )}
         </CardContent>
