@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { ActivityIcon, ArrowLeftIcon, CheckCircle2Icon, PauseCircleIcon, PlayCircleIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, ShieldAlertIcon, TimerIcon } from "lucide-react";
+import { ActivityIcon, ArrowLeftIcon, BotIcon, CheckCircle2Icon, CopyIcon, ExternalLinkIcon, PauseCircleIcon, PlayCircleIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, ShieldAlertIcon, TimerIcon } from "lucide-react";
 import { toast } from "sonner";
 import { AppFrame } from "@/components/app/app-frame";
 import { AdminListPagination } from "@/components/app/admin-list-pagination";
@@ -93,6 +93,7 @@ export function AdminUpiExtractClient() {
   const [acting, setActing] = useState<string | null>(null);
   const [concurrencyDraft, setConcurrencyDraft] = useState<Record<ExtractChannel, string>>({ public: "10", premium: "5" });
   const [concurrencyDirty, setConcurrencyDirty] = useState<Record<ExtractChannel, boolean>>({ public: false, premium: false });
+  const [telegramToken, setTelegramToken] = useState("");
 
   const refresh = useCallback(async (silent = false) => {
     try {
@@ -161,6 +162,20 @@ export function AdminUpiExtractClient() {
   const jobsById = useMemo(() => new Map((state?.jobs || []).map((job) => [job.jobId, job])), [state?.jobs]);
   const recentItems = state?.items || [];
   const isBusy = loading || Boolean(acting);
+  const appUrl = typeof window === "undefined" ? "" : window.location.origin;
+  const telegramWebhookUrl = `${appUrl}/api/telegram/webhook`;
+  const sanitizedTelegramToken = telegramToken.trim();
+  const setWebhookUrl = sanitizedTelegramToken
+    ? `https://api.telegram.org/bot${encodeURIComponent(sanitizedTelegramToken)}/setWebhook?url=${encodeURIComponent(telegramWebhookUrl)}&drop_pending_updates=true`
+    : "";
+  const webhookInfoUrl = sanitizedTelegramToken
+    ? `https://api.telegram.org/bot${encodeURIComponent(sanitizedTelegramToken)}/getWebhookInfo`
+    : "";
+
+  const copyTelegramWebhookUrl = useCallback(async () => {
+    await navigator.clipboard.writeText(telegramWebhookUrl);
+    toast.success("Webhook URL copied");
+  }, [telegramWebhookUrl]);
 
   return (
     <AppFrame audience="admin" title="UPI 提取管理" subtitle="查看公益提取任务，暂停入口，或把正在处理的任务转回等待中。" onRefresh={() => refresh()}>
@@ -386,6 +401,65 @@ export function AdminUpiExtractClient() {
             </Table>
           </div>
           <AdminListPagination pagination={state?.itemsPagination} loading={loading} onPageChange={setPage} className="mt-4" />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 rounded-3xl bg-background shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BotIcon className="size-5 text-primary" />Telegram Bot Setup</CardTitle>
+          <CardDescription>Connect your own Telegram bot to this site. Users can send /start, /balance, /redeem CODE, or a session.json file directly to the bot.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-3xl border border-border p-4">
+              <div className="font-semibold">1. Add Vercel environment variable</div>
+              <div className="mt-2 text-sm text-muted-foreground">Add this in Vercel, then redeploy the latest production build.</div>
+              <div className="mt-3 rounded-2xl bg-muted p-3 font-mono text-xs leading-6">
+                <div>TELEGRAM_BOT_TOKEN=your_botfather_token</div>
+                <div>TELEGRAM_UPI_WAIT_MS=180000</div>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-border p-4">
+              <div className="font-semibold">2. Webhook URL</div>
+              <div className="mt-2 break-all rounded-2xl bg-muted p-3 font-mono text-xs">{telegramWebhookUrl}</div>
+              <Button type="button" variant="outline" className="mt-3 rounded-xl" onClick={copyTelegramWebhookUrl}>
+                <CopyIcon data-icon="inline-start" />Copy URL
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-border p-4">
+            <div className="font-semibold">3. Set webhook from here</div>
+            <div className="mt-2 text-sm text-muted-foreground">Paste the BotFather token only to generate Telegram setup links. The token is not saved in this page.</div>
+            <div className="mt-3 flex flex-col gap-2 md:flex-row">
+              <Input
+                value={telegramToken}
+                onChange={(event) => setTelegramToken(event.target.value)}
+                placeholder="123456789:AA..."
+                className="h-10 rounded-xl font-mono"
+              />
+              <Button type="button" className="rounded-xl" disabled={!setWebhookUrl} onClick={() => window.open(setWebhookUrl, "_blank", "noopener,noreferrer")}>
+                <ExternalLinkIcon data-icon="inline-start" />Set Webhook
+              </Button>
+              <Button type="button" variant="outline" className="rounded-xl" disabled={!webhookInfoUrl} onClick={() => window.open(webhookInfoUrl, "_blank", "noopener,noreferrer")}>
+                <ExternalLinkIcon data-icon="inline-start" />Check Status
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            {[
+              ["/start", "Open bot menu"],
+              ["/balance", "Check wallet"],
+              ["/redeem CODE", "Add CDK credit"],
+              ["session.json", "Generate UPI QR"],
+            ].map(([command, description]) => (
+              <div key={command} className="rounded-2xl border border-border p-3">
+                <div className="font-mono text-sm font-semibold">{command}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{description}</div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </AppFrame>
