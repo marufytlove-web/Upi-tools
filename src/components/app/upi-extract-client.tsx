@@ -2857,21 +2857,28 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
 
   return (
     <div className={cn(
-      "min-h-dvh bg-soft text-foreground transition-colors duration-500"
+      "min-h-dvh bg-[#f6f7f4] text-foreground transition-colors duration-500"
     )}>
-      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-center gap-5 px-5 py-6">
+      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-start gap-5 px-5 py-10 md:py-14">
         <ActivityHeatmap items={activity} counts={heatmapCounts} countsByChannel={heatmapCountsByChannel} labels={t} />
 
         <Card size="sm" className={cn(
-          "w-full rounded-3xl bg-background shadow-sm"
+          "w-full overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(24,24,27,0.10)]"
         )}>
-          <CardHeader className="pb-1">
+          <CardHeader className="border-b border-zinc-800 bg-[#111312] p-4 text-white">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-300">Tool Mart</div>
+                <div className="mt-1 text-xl font-black tracking-tight text-white">QR Command Center</div>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-200">UPI Live</div>
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative grid w-full grid-cols-2 rounded-2xl border border-border bg-muted/35 p-1 shadow-inner sm:max-w-xs">
+              <div className="relative grid w-full grid-cols-2 rounded-2xl border border-white/10 bg-white/10 p-1 shadow-inner sm:max-w-xs">
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "absolute left-1 top-1 h-[calc(100%-0.5rem)] w-[calc(50%-0.25rem)] rounded-xl bg-brand/18 shadow-sm shadow-brand/10 ring-1 ring-brand/20 transition-transform duration-300 ease-out will-change-transform",
+                    "absolute left-1 top-1 h-[calc(100%-0.5rem)] w-[calc(50%-0.25rem)] rounded-xl bg-amber-400 shadow-sm shadow-amber-950/20 transition-transform duration-300 ease-out will-change-transform",
                     pageView === "tasks" && "translate-x-full"
                   )}
                 />
@@ -2879,7 +2886,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                   type="button"
                   className={cn(
                     "relative z-10 rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-300",
-                    pageView === "extract" ? "text-brand" : "text-muted-foreground hover:text-foreground"
+                    pageView === "extract" ? "text-zinc-950" : "text-zinc-300 hover:text-white"
                   )}
                   onClick={() => switchCardPage("extract")}
                 >
@@ -2889,7 +2896,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                   type="button"
                   className={cn(
                     "relative z-10 inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-300",
-                    pageView === "tasks" ? "text-brand" : "text-muted-foreground hover:text-foreground"
+                    pageView === "tasks" ? "text-zinc-950" : "text-zinc-300 hover:text-white"
                   )}
                   onClick={() => publicUser ? switchCardPage("tasks") : void startPublicLogin(false)}
                 >
@@ -2897,7 +2904,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                   <span
                     className={cn(
                       "ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none transition-colors duration-300",
-                      pageView === "tasks" ? "bg-brand/15 text-brand" : "bg-background text-muted-foreground"
+                      pageView === "tasks" ? "bg-zinc-950/10 text-zinc-950" : "bg-white/10 text-zinc-300"
                     )}
                   >
                     {taskTabCount}
@@ -2909,7 +2916,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                 <button
                   type="button"
                   onClick={() => publicUser ? setLoginOpen(true) : void startPublicLogin(false)}
-                  className="inline-flex h-10 min-w-0 items-center gap-2 rounded-2xl border border-border bg-background/80 px-3 text-sm font-semibold shadow-sm backdrop-blur transition hover:bg-muted"
+                  className="inline-flex h-10 min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:bg-white/15"
                 >
                   <UserCircleIcon className="size-4 shrink-0 text-brand" />
                   <span className="max-w-36 truncate">{publicUser ? publicUser.displayName : t.accountLogin}</span>
@@ -3067,7 +3074,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                 </div>}
 
                 {mode === "token" && (
-                  <div className="rounded-2xl border border-border bg-muted/40 px-3 py-2.5 text-left text-sm">
+                  <div className="rounded-3xl border border-zinc-200 bg-[#fbfaf6] px-4 py-3 text-left text-sm shadow-inner shadow-zinc-950/5">
                     <div className="font-semibold">{t.howTitle}</div>
                     <div className="mt-1.5 flex flex-col gap-1 text-muted-foreground">
                       <p>
@@ -3103,7 +3110,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                         value={sessionToken}
                         onChange={(event) => setSessionToken(event.target.value)}
                         placeholder={t.tokenPlaceholder}
-                        className="h-36 min-h-36 max-h-36 resize-none overflow-y-auto overscroll-contain break-all font-mono text-xs leading-relaxed [field-sizing:fixed]"
+                        className="h-40 min-h-40 max-h-40 resize-none overflow-y-auto overscroll-contain rounded-3xl border-zinc-200 bg-white p-4 font-mono text-xs leading-relaxed shadow-inner shadow-zinc-950/5 [field-sizing:fixed]"
                         disabled={loading}
                       />
                     </Field>
@@ -3232,8 +3239,8 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                 {debugLogPanel}
 
                 <div className={cn(
-                  "rounded-2xl border p-3",
-                  userIsPremium ? "border-brand/30 bg-brand/10" : "border-border bg-muted/40"
+                  "rounded-3xl border p-4 shadow-inner shadow-zinc-950/5",
+                  userIsPremium ? "border-amber-300 bg-amber-50" : "border-zinc-200 bg-[#fbfaf6]"
                 )}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -3259,7 +3266,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                 )}
 
                 {extractMethod === "upi" && (
-                <div className="rounded-2xl border border-border bg-muted/40 p-3">
+                <div className="rounded-3xl border border-zinc-200 bg-[#fbfaf6] p-4 shadow-inner shadow-zinc-950/5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="font-semibold text-foreground">{t.autoPublishScanOrder}</div>
@@ -3282,7 +3289,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                 </div>
                 )}
 
-                <Button type="submit" size="lg" disabled={loading || accountTaskLimitReached || autoPublishBlocked || (mode === "token" ? !sessionToken.trim() : !guardIdInput.trim())} className="h-10 rounded-xl">
+                <Button type="submit" size="lg" disabled={loading || accountTaskLimitReached || autoPublishBlocked || (mode === "token" ? !sessionToken.trim() : !guardIdInput.trim())} className="h-12 rounded-2xl bg-[#111312] text-white shadow-[0_12px_30px_rgba(17,19,18,0.20)] hover:bg-black">
                   {loading ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <SendIcon data-icon="inline-start" />}
                   {loading ? t.submitting : mode === "guard" ? t.submitGuard : paymentMethodSelectionEnabled && extractMethod === "ideal" ? t.submitIdeal : t.submit}
                 </Button>
@@ -5003,13 +5010,15 @@ function ResultView({
 
   return (
     <>
-      <CardHeader className="text-center">
-        <CardTitle className="flex items-center justify-center gap-2 text-xl">
-          <CheckCircle2Icon className="size-5 text-success" />
+      <CardHeader className="border-b border-emerald-100 bg-emerald-50/70 text-center">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+          <CheckCircle2Icon className="size-6" />
+        </div>
+        <CardTitle className="mt-3 text-2xl font-black tracking-tight text-zinc-950">
           {resultMethod === "ideal" ? labels.resultTitleIdeal : labels.resultTitle}
         </CardTitle>
-        <CardDescription>
-          {labels.qrRemaining}<span className="font-semibold text-foreground">{remainingText}</span>
+        <CardDescription className="text-zinc-600">
+          {labels.qrRemaining}<span className="font-semibold text-zinc-950">{remainingText}</span>
         </CardDescription>
         <AccountContactMeta accountEmail={accountEmail} accountPhone={accountPhone} labels={labels} className="mt-2 justify-center" />
         <AccountSubscriptionMeta
@@ -5029,7 +5038,7 @@ function ResultView({
           </div>
         )}
       </CardHeader>
-      <CardContent className="flex flex-col items-center gap-4">
+      <CardContent className="flex flex-col items-center gap-4 bg-white p-5">
         {activeScanOrder ? (
           <ScanOrderStatusPanel
             order={activeScanOrder}
@@ -5039,10 +5048,22 @@ function ResultView({
           />
         ) : (
           <>
-            <a href={result.qrImageUrl} target="_blank" rel="noreferrer" className="rounded-3xl border border-border bg-white p-3 shadow-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={result.qrImageUrl} alt={resultMethod === "ideal" ? "IDEAL payment QR Code" : "UPI QR Code"} className="size-64 rounded-2xl object-contain" />
-            </a>
+            <div className="w-full max-w-sm rounded-[32px] border border-zinc-200 bg-[#111312] p-3 shadow-[0_26px_70px_rgba(17,19,18,0.22)]">
+              <div className="rounded-[24px] bg-white p-4">
+                <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                  <span>Tool Mart QR</span>
+                  <span>{resultMethod === "ideal" ? "IDEAL" : "UPI"}</span>
+                </div>
+                <a href={result.qrImageUrl} target="_blank" rel="noreferrer" className="block rounded-[22px] border border-zinc-100 bg-zinc-50 p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={result.qrImageUrl} alt={resultMethod === "ideal" ? "IDEAL payment QR Code" : "UPI QR Code"} className="mx-auto size-64 rounded-2xl object-contain" />
+                </a>
+                <div className="mt-3 flex items-center justify-between rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                  <span>Ready for payment</span>
+                  <span>{remainingText}</span>
+                </div>
+              </div>
+            </div>
 
             {scanOrder?.status === "CANCELLED" && (
               <div className="w-full rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2 text-center text-xs font-medium text-warning">
@@ -5055,18 +5076,18 @@ function ResultView({
         {!activeScanOrder && (
           <>
             <div className="grid w-full gap-2 sm:grid-cols-2">
-              <a href={result.paymentUrl} target="_blank" rel="noreferrer" className={cn(buttonVariants({ size: "lg" }), "h-10 w-full rounded-xl bg-foreground text-background hover:bg-foreground/90")}>
+              <a href={result.paymentUrl} target="_blank" rel="noreferrer" className={cn(buttonVariants({ size: "lg" }), "h-12 w-full rounded-2xl bg-[#111312] text-white shadow-[0_12px_30px_rgba(17,19,18,0.18)] hover:bg-black")}>
                 <ExternalLinkIcon data-icon="inline-start" />
                 {resultMethod === "ideal" ? labels.openPaymentIdeal : labels.openPayment}
               </a>
-              <Button type="button" size="lg" variant="outline" className="h-10 rounded-xl" onClick={() => copyText(result.paymentUrl, resultMethod === "ideal" ? labels.paymentCopiedIdeal : labels.paymentCopied)}>
+              <Button type="button" size="lg" variant="outline" className="h-12 rounded-2xl border-zinc-200 bg-white" onClick={() => copyText(result.paymentUrl, resultMethod === "ideal" ? labels.paymentCopiedIdeal : labels.paymentCopied)}>
                 <CopyIcon data-icon="inline-start" />
                 {labels.copyPayment}
               </Button>
             </div>
 
             {(resultMethod === "ideal" || result.upiUri) && (
-              <div className="w-full rounded-2xl bg-muted/40 p-3 text-xs text-muted-foreground">
+              <div className="w-full rounded-3xl border border-zinc-200 bg-[#fbfaf6] p-4 text-xs text-zinc-600">
                 <div className="mb-1 flex items-center gap-2 font-medium text-foreground">
                   <AlertCircleIcon className="size-4" />
                   {resultMethod === "ideal" ? labels.idealContent : labels.upiContent}
@@ -5134,7 +5155,7 @@ function ResultView({
           />
         )}
 
-        <Button type="button" variant="ghost" onClick={startNewExtraction}>
+        <Button type="button" variant="ghost" className="rounded-2xl" onClick={startNewExtraction}>
           <RotateCcwIcon data-icon="inline-start" />
           {resultMethod === "ideal" ? labels.newIdealExtraction : labels.newExtraction}
         </Button>
