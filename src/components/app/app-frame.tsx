@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -7,7 +7,7 @@ import {
   ClipboardListIcon,
   CompassIcon,
   CrownIcon,
-  DatabaseIcon,
+  BotIcon, DatabaseIcon,
   Globe2Icon,
   KeyRoundIcon,
   LayoutDashboardIcon,
@@ -75,6 +75,7 @@ const adminNavItems: AdminNavItem[] = [
   { href: "/admin/billing", label: "Billing", description: "Payments", icon: ReceiptTextIcon },
   { href: "/admin/proxies", label: "Proxies", description: "Exit nodes", icon: Globe2Icon },
   { href: "/admin/upi-extract", label: "UPI Extract", description: "Jobs", icon: DatabaseIcon },
+  { href: "/admin/bot", label: "Bot Control", description: "Telegram", icon: BotIcon },
 ];
 
 const SCANNER_TG_GROUP_URL = process.env.NEXT_PUBLIC_SCANNER_TG_GROUP_URL || "https://t.me/your_scanner_group";
@@ -293,3 +294,4 @@ export function AppFrame({
     </div>
   );
 }
+
