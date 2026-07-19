@@ -179,6 +179,41 @@ function getHelpText(isAdmin = false) {
   ].join("\n");
 }
 
+function getStartText() {
+  return [
+    "\u{1F44B} *UPI QR Bot*",
+    "",
+    "Send one account per message:",
+    "? `session.json` file ? drag and drop",
+    "? Or paste one session token / session JSON text",
+    "",
+    "?? Do not batch multiple accounts in one message.",
+    "\u{1F4B0} Use /balance to check wallet credit.",
+    "\u{1F39F} Use /redeem CODE to add CDK credit.",
+    "",
+    "Pick an action:",
+  ].join("\n");
+}
+
+function buildMainMenuKeyboard() {
+  const miniAppUrl = process.env.TELEGRAM_MINI_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
+  const contactUrl = process.env.TELEGRAM_CONTACT_URL || "";
+  const groupUrl = process.env.TELEGRAM_GROUP_URL || "";
+  const keyboard: Array<Array<{ text: string; callback_data?: string; url?: string }>> = [];
+  if (miniAppUrl) keyboard.push([{ text: "\u{1F680} Open Mini App", url: miniAppUrl }]);
+  keyboard.push(
+    [{ text: "\u{1F4B0} Wallet", callback_data: "menu:balance" }, { text: "\u{1F6D2} Buy credits", callback_data: "menu:credits" }],
+    [{ text: "\u{1F4CA} Status", callback_data: "menu:tasks" }, { text: "\u{1F6D1} Stop all", callback_data: "menu:stop" }],
+    [{ text: "\u{1F511} API", callback_data: "menu:api" }, { text: "\u{2753} Help", callback_data: "menu:help" }],
+    [{ text: "\u{2699} Settings", callback_data: "menu:settings" }, { text: "\u{1F310} Language", callback_data: "menu:language" }]
+  );
+  const lastRow = [] as Array<{ text: string; callback_data?: string; url?: string }>;
+  lastRow.push(contactUrl ? { text: "\u{1F4AC} Contact", url: contactUrl } : { text: "\u{1F4AC} Contact", callback_data: "menu:contact" });
+  lastRow.push(groupUrl ? { text: "\u{1F465} Join Group", url: groupUrl } : { text: "\u{1F465} Join Group", callback_data: "menu:group" });
+  keyboard.push(lastRow);
+  return { inline_keyboard: keyboard };
+}
+
 function publicUserFromTelegram(from: TelegramUser): PublicUserIdentity {
   return {
     telegramUserId: String(from.id),
@@ -571,6 +606,47 @@ async function sendTaskList(chatId: number | string, telegramUserId: string, fil
   await sendTelegramMessage(chatId, message.text, message.keyboard);
 }
 
+async function handleMainMenuCallback(update: NonNullable<TelegramUpdate["callback_query"]>) {
+  const data = String(update.data || "");
+  if (!data.startsWith("menu:")) return false;
+  const chatId = update.message?.chat.id;
+  if (!chatId) return false;
+  const user = publicUserFromTelegram(update.from);
+  const action = data.slice("menu:".length);
+  await answerCallbackQuery(update.id);
+
+  if (action === "balance") {
+    await sendPublicBalance(chatId, user);
+    return true;
+  }
+  if (action === "tasks") {
+    await sendTaskList(chatId, user.telegramUserId, "all", 1);
+    return true;
+  }
+  if (action === "help") {
+    await sendTelegramMessage(chatId, getHelpText(isAllowedAdmin({ id: user.telegramUserId, username: update.from.username, firstName: update.from.first_name })));
+    return true;
+  }
+  if (action === "credits") {
+    await sendTelegramMessage(chatId, "Buy or create a CDK from the admin panel, then redeem it here with: /redeem YOUR_CDK_CODE");
+    return true;
+  }
+  if (action === "api") {
+    await sendTelegramMessage(chatId, "API access is managed by the admin. Use this bot by sending a session token or session.json file.");
+    return true;
+  }
+  if (action === "stop") {
+    await sendTelegramMessage(chatId, "Stop-all from Telegram is not enabled yet. Use /tasks to view jobs, or manage jobs from the admin panel.");
+    return true;
+  }
+  if (action === "settings" || action === "language") {
+    await sendTelegramMessage(chatId, "Settings are managed from the web admin panel.");
+    return true;
+  }
+  await sendTelegramMessage(chatId, "No link is configured for this button yet.");
+  return true;
+}
+
 async function handleTaskListCallback(update: NonNullable<TelegramUpdate["callback_query"]>) {
   const data = String(update.data || "");
   const match = data.match(/^tasks:(all|active|completed|failed):(\d+)$/);
@@ -588,6 +664,7 @@ async function handleTaskListCallback(update: NonNullable<TelegramUpdate["callba
 
 export async function handleTelegramUpdate(update: TelegramUpdate) {
   if (update.callback_query) {
+    if (await handleMainMenuCallback(update.callback_query)) return { handled: true };
     if (await handleTaskListCallback(update.callback_query)) return { handled: true };
     await answerCallbackQuery(update.callback_query.id).catch(() => undefined);
     return { handled: false };
@@ -650,7 +727,11 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   const code = extractLoginCode(text);
 
   if (!code) {
-    if (/^\/(?:start|help|worker|admin|reg|tasks)(?:@\w+)?$/i.test(text)) {
+    if (/^\/start(?:@\w+)?$/i.test(text)) {
+      await sendTelegramMessage(chatId, getStartText(), buildMainMenuKeyboard());
+      return { handled: true };
+    }
+    if (/^\/(?:help|worker|admin|reg|tasks)(?:@\w+)?$/i.test(text)) {
       await sendTelegramMessage(chatId, getHelpText(isAllowedAdmin(actor)));
       return { handled: true };
     }
