@@ -2859,11 +2859,25 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
     <div className={cn(
       "min-h-dvh bg-[#f6f7f4] text-foreground transition-colors duration-500"
     )}>
-      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-start gap-5 px-5 py-10 md:py-14">
-        <ActivityHeatmap items={activity} counts={heatmapCounts} countsByChannel={heatmapCountsByChannel} labels={t} />
+      <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-start gap-5 px-5 py-8 md:py-12">
+        <section className="w-full overflow-hidden rounded-[32px] border border-zinc-200 bg-[#111312] p-5 text-white shadow-[0_28px_90px_rgba(17,19,18,0.22)] md:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-amber-300">Tool Mart Pay</div>
+              <h1 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">UPI Checkout Console</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">Paste one ChatGPT session, run a private checkout task, and collect the QR from a fresh Tool Mart workflow.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:min-w-[420px]">
+              <StatusTile label="Success" value={heatmapCounts.completed} tone="emerald" />
+              <StatusTile label="Queue" value={heatmapCounts.queued} tone="pink" />
+              <StatusTile label="Running" value={heatmapCounts.running + (heatmapCountsByChannel.premium?.running ?? 0)} tone="sky" />
+              <StatusTile label="Failed" value={heatmapCounts.failed} tone="zinc" />
+            </div>
+          </div>
+        </section>
 
         <Card size="sm" className={cn(
-          "w-full overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(24,24,27,0.10)]"
+          "w-full overflow-hidden rounded-[32px] border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(24,24,27,0.10)]"
         )}>
           <CardHeader className="border-b border-zinc-800 bg-[#111312] p-4 text-white">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -3018,8 +3032,8 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
             ) : extractionPaused && !loading ? (
               <MaintenanceView labels={t} />
             ) : (
-              <CardContent className="pt-0">
-              <form onSubmit={submit} className={cn("flex flex-col gap-3", cardPageStaggerClass(cardTransitionPhase))}>
+              <CardContent className="bg-[#f8f6ef] p-4 md:p-5">
+              <form onSubmit={submit} className={cn("flex flex-col gap-4", cardPageStaggerClass(cardTransitionPhase))}>
                 {false && <div className="mx-auto flex rounded-full border border-border bg-muted/50 p-1 text-sm">
                   <button
                     type="button"
@@ -3393,7 +3407,7 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
         onClaimPremiumTrial={claimPublicPremiumTrial}
       />
 
-      <div className="fixed bottom-5 right-5 flex flex-col items-end gap-2">
+      <div className="fixed bottom-5 right-5 flex flex-col items-end gap-2 max-md:hidden">
         <div className="flex items-center gap-2 rounded-full border border-border bg-background/95 px-4 py-2 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl">
           <UsersRoundIcon className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t.onlineLabel}</span>
@@ -3428,6 +3442,25 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+
+function StatusTile({ label, value, tone }: { label: string; value: number; tone: "emerald" | "pink" | "sky" | "zinc" }) {
+  const toneClass = {
+    emerald: "bg-emerald-400 text-emerald-950",
+    pink: "bg-pink-400 text-pink-950",
+    sky: "bg-sky-400 text-sky-950",
+    zinc: "bg-zinc-300 text-zinc-950",
+  }[tone];
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">{label}</div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className={cn("size-2.5 rounded-full", toneClass)} />
+        <span className="text-2xl font-black tabular-nums text-white">{value}</span>
       </div>
     </div>
   );
