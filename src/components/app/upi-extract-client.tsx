@@ -2860,67 +2860,6 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
       "min-h-dvh bg-soft text-foreground transition-colors duration-500"
     )}>
       <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col items-center justify-center gap-5 px-5 py-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-            <span className="text-brand">UPI</span> {t.title}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t.subtitle}
-          </p>
-          <p className="mt-1 text-xs font-medium text-muted-foreground">
-            {extractCapacity ? t.channelCapacityNote(
-              extractCapacity.public.concurrency,
-              extractCapacity.public.proxyCount,
-              extractCapacity.premium.concurrency,
-              extractCapacity.premium.proxyCount
-            ) : t.channelCapacityLoading}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <PrivacyInfoDialog labels={t} />
-            <FaqDialog labels={t} content={getLocalizedFaqContent(siteSettings, lang)} />
-            <SuccessRateDialog
-              labels={t}
-              guideOpenCount={guideOpenCount}
-              onOpenGuide={recordGuideOpen}
-            />
-            <BuffButton
-              labels={t}
-              buffCount={buffCount}
-              bursts={buffBursts}
-              onSendBuff={sendBuff}
-            />
-          </div>
-          <a
-            href={OPEN_SOURCE_REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mx-auto mt-4 flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl border border-brand/35 bg-brand/10 px-4 py-3 text-left shadow-sm shadow-brand/10 transition hover:-translate-y-0.5 hover:border-brand/55 hover:bg-brand/15 hover:shadow-md"
-          >
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-brand shadow-sm ring-1 ring-brand/20">
-                <span className="text-sm font-black leading-none">&lt;/&gt;</span>
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-foreground">
-                  {lang === "zh" ? "代码已开源" : "Source code is open"}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  Tonwed/gpt-upi
-                </span>
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-2 rounded-full bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm ring-1 ring-border">
-              <StarIcon className="size-4 fill-brand text-brand" />
-              {githubStars !== null
-                ? new Intl.NumberFormat(lang === "zh" ? "zh-CN" : "en-US").format(githubStars)
-                : githubStarsFailed
-                  ? "Stars"
-                  : "..."}
-              <ExternalLinkIcon className="size-3.5 text-muted-foreground" />
-            </span>
-          </a>
-        </div>
-
         <ActivityHeatmap items={activity} counts={heatmapCounts} countsByChannel={heatmapCountsByChannel} labels={t} />
 
         <Card size="sm" className={cn(
