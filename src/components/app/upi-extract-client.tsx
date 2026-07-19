@@ -4770,98 +4770,107 @@ function ExtractionProgressPanel({
   const percent = Math.max(4, Math.min(100, Math.round(current.percent || 0)));
 
   return (
-    <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-3 text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <Loader2Icon className="size-4 animate-spin text-sky-500" />
-          <span>{labels.progressTitle}</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground">{currentLabel}</span>
+    <div className="overflow-hidden rounded-[1.65rem] border border-zinc-800 bg-[#080b0f] text-sm text-zinc-100 shadow-[0_22px_70px_rgba(0,0,0,0.34)]">
+      <div className="relative border-b border-zinc-800/90 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_34%),linear-gradient(135deg,#10151d,#080b0f)] p-4">
+        <div className="absolute right-4 top-4 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
+          Live Route
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{labels.elapsed(elapsedSeconds)}</span>
-          <span>·</span>
-          <span>{labels.progressPercent} {percent}%</span>
-          {!untilSuccess && onCancel && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="ml-1 h-7 rounded-full px-2 text-destructive hover:bg-destructive/10"
-              disabled={cancelling}
-              onClick={() => void onCancel()}
-            >
-              {cancelling ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <XCircleIcon data-icon="inline-start" />}
-              {cancelling ? labels.cancellingTask : labels.cancelTask}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-sky-500 transition-all duration-500"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-
-      <AccountContactMeta accountEmail={accountEmail} accountPhone={accountPhone} labels={labels} className="mt-3" />
-
-      {untilSuccess && (
-        <div className="mt-3 rounded-2xl border border-brand/25 bg-background/80 p-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 text-xs text-muted-foreground">
-              <div className="font-semibold text-foreground">{labels.untilSuccess}</div>
-              <div className="mt-1">{labels.untilSuccessRetryCount(retryCount)}</div>
-              {lastError && (
-                <div className="mt-2 break-words rounded-xl bg-destructive/10 p-2 text-destructive">
-                  <span className="font-medium">{labels.untilSuccessLastError}: </span>{lastError}
-                </div>
-              )}
+        <div className="flex flex-wrap items-end justify-between gap-3 pr-24">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300">
+              <Loader2Icon className="size-3.5 animate-spin" />
+              Command Running
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 rounded-xl"
-              disabled={cancelling}
-              onClick={() => void onCancel?.()}
-            >
-              {cancelling ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <XCircleIcon data-icon="inline-start" />}
-              {cancelling ? labels.untilSuccessCancelling : labels.untilSuccessCancel}
-            </Button>
+            <div className="mt-2 truncate text-xl font-black tracking-tight text-white">{currentLabel}</div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <span>{labels.elapsed(elapsedSeconds)}</span>
+            <span>/</span>
+            <span>{labels.progressPercent} {percent}%</span>
+            {!untilSuccess && onCancel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-7 rounded-full border border-red-400/25 bg-red-500/10 px-2 text-red-300 hover:bg-red-500/20 hover:text-red-200"
+                disabled={cancelling}
+                onClick={() => void onCancel()}
+              >
+                {cancelling ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <XCircleIcon data-icon="inline-start" />}
+                {cancelling ? labels.cancellingTask : labels.cancelTask}
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {PROGRESS_STAGES.map((stage, index) => {
-          const done = current.stage === "completed" || index < activeIndex;
-          const active = current.stage !== "completed" && index === activeIndex;
-          return (
-            <div
-              key={stage}
-              className={cn(
-                "flex items-center gap-2 rounded-xl border px-2 py-1.5 text-xs transition",
-                done && "border-success/30 bg-success/10 text-success",
-                active && "border-sky-500/30 bg-sky-500/10 text-sky-600",
-                !done && !active && "border-border bg-background text-muted-foreground"
-              )}
-            >
-              <span
+      <div className="space-y-4 p-4">
+        <div className="h-3 overflow-hidden rounded-full border border-zinc-700 bg-zinc-950 shadow-inner">
+          <div
+            className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b,#22c55e,#38bdf8)] shadow-[0_0_24px_rgba(56,189,248,0.42)] transition-all duration-500"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        <AccountContactMeta accountEmail={accountEmail} accountPhone={accountPhone} labels={labels} className="text-zinc-400" />
+
+        {untilSuccess && (
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 text-xs text-zinc-400">
+                <div className="font-semibold text-white">{labels.untilSuccess}</div>
+                <div className="mt-1">{labels.untilSuccessRetryCount(retryCount)}</div>
+                {lastError && (
+                  <div className="mt-2 break-words rounded-xl bg-red-500/10 p-2 text-red-300">
+                    <span className="font-medium">{labels.untilSuccessLastError}: </span>{lastError}
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 rounded-xl border-zinc-700 bg-zinc-950 text-zinc-100 hover:bg-zinc-900"
+                disabled={cancelling}
+                onClick={() => void onCancel?.()}
+              >
+                {cancelling ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <XCircleIcon data-icon="inline-start" />}
+                {cancelling ? labels.untilSuccessCancelling : labels.untilSuccessCancel}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
+          {PROGRESS_STAGES.map((stage, index) => {
+            const done = current.stage === "completed" || index < activeIndex;
+            const active = current.stage !== "completed" && index === activeIndex;
+            return (
+              <div
+                key={stage}
                 className={cn(
-                  "flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]",
-                  done && "bg-success text-white",
-                  active && "bg-sky-500 text-white",
-                  !done && !active && "bg-muted text-muted-foreground"
+                  "relative overflow-hidden rounded-2xl border px-3 py-2.5 text-xs transition",
+                  done && "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+                  active && "border-amber-300/50 bg-amber-300/15 text-amber-100 shadow-[0_0_28px_rgba(245,158,11,0.16)]",
+                  !done && !active && "border-zinc-800 bg-zinc-950/80 text-zinc-500"
                 )}
               >
-                {done ? "\u2713" : index + 1}
-              </span>
-              <span className="truncate">{stageLabel(stage)}</span>
-            </div>
-          );
-        })}
+                {active && <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-300" />}
+                <span
+                  className={cn(
+                    "mb-2 flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+                    done && "bg-emerald-400 text-zinc-950",
+                    active && "bg-amber-300 text-zinc-950",
+                    !done && !active && "bg-zinc-800 text-zinc-500"
+                  )}
+                >
+                  {done ? "\u2713" : index + 1}
+                </span>
+                <span className="block truncate font-semibold">{stageLabel(stage)}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
