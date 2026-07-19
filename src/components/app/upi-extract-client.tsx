@@ -1243,6 +1243,8 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
   const [contentView, setContentView] = useState<ExtractPageView>("extract");
   const [cardTransitionPhase, setCardTransitionPhase] = useState<CardTransitionPhase>("idle");
   const [sessionToken, setSessionToken] = useState("");
+  const [extractCdkCode, setExtractCdkCode] = useState("");
+  const [extractCdkSubmitting, setExtractCdkSubmitting] = useState(false);
   const [customCheckoutProxy, setCustomCheckoutProxy] = useState("");
   const [customProviderProxy, setCustomProviderProxy] = useState("");
   const [approvalParallelism, setApprovalParallelism] = useState(1);
@@ -1856,6 +1858,29 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
     setPublicUserSettings(normalizePublicUserSettings(data.settings));
     return data.redeem;
   }, []);
+
+  const verifyExtractionCdk = useCallback(async () => {
+    const code = extractCdkCode.trim();
+    if (!code) {
+      toast.error(t.cdkRedeemNeedCode);
+      return;
+    }
+    if (!publicUser) {
+      toast.error("Please login with Telegram before verifying a CDK.");
+      void startPublicLogin(false);
+      return;
+    }
+    setExtractCdkSubmitting(true);
+    try {
+      const redeem = await redeemPublicCdk(code);
+      toast.success(t.cdkRedeemSuccess(redeem.amount));
+      setExtractCdkCode("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t.cdkRedeemNeedCode);
+    } finally {
+      setExtractCdkSubmitting(false);
+    }
+  }, [extractCdkCode, publicUser, redeemPublicCdk, startPublicLogin, t]);
 
   const applyPublicPremiumActionResponse = useCallback((data: PublicUserResponse) => {
     setPublicUser(data.user);
@@ -3112,6 +3137,37 @@ export function UpiExtractClient({ mockMode = false, mockSeedAt }: { mockMode?: 
                     </Button>
                   </div>
                 )}
+
+                <div className="rounded-3xl border border-amber-300/40 bg-[#fff8e8] p-4 shadow-inner shadow-amber-950/5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-zinc-950">
+                      <KeyRoundIcon className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-zinc-950">Extraction CDK</div>
+                      <p className="mt-1 text-xs leading-relaxed text-zinc-600">One CDK can be used once. Paste a code you bought from the admin, verify it, then start extraction with the credited balance.</p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={extractCdkCode}
+                          onChange={(event) => setExtractCdkCode(event.target.value)}
+                          placeholder="Paste your CDK code"
+                          className="h-11 rounded-2xl border-amber-200 bg-white font-mono text-sm"
+                          disabled={loading || extractCdkSubmitting}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 rounded-2xl border-amber-300 bg-white px-5 font-semibold"
+                          disabled={loading || extractCdkSubmitting || !extractCdkCode.trim()}
+                          onClick={() => void verifyExtractionCdk()}
+                        >
+                          {extractCdkSubmitting ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <ShieldCheckIcon data-icon="inline-start" />}
+                          {extractCdkSubmitting ? "Verifying" : "Verify CDK"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <FieldGroup>
                   {mode === "token" ? (
