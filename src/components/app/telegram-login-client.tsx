@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useAppLanguage, type AppLanguage } from "@/lib/client/language";
 import { cn } from "@/lib/utils";
 
-const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "your_bot_username";
+const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "Tool_Mart_upi_bot";
 
 type Purpose = "worker" | "admin";
 type ChallengeStatus = "PENDING" | "APPROVED" | "USED" | "EXPIRED";
